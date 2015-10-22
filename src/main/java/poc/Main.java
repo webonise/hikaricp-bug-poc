@@ -1,7 +1,10 @@
 package poc;
 
 import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.HikariJNDIFactory;
 
+import javax.naming.*;
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -23,14 +26,44 @@ public class Main {
   public static void main(String[] args) throws Exception {
     checkDirectJdbcConnectionHasDefaultSchema();
     checkFreshHikariCPConnectionHasDefaultSchema();
+    checkReturnedAndCheckedOutHikariCPConnectionHasDefaultSchema();
+    checkHikariCPJNDIFactoryHasDefaultSchema();
   }
 
-  private static void checkFreshHikariCPConnectionHasDefaultSchema() throws Exception {
+  private static void checkHikariCPJNDIFactoryHasDefaultSchema() throws Exception {
+    HikariJNDIFactory factory = new HikariJNDIFactory();
+    Reference ref = new Reference("javax.sql.DataSource");
+    ref.add(new StringRefAddr("jdbcUrl", JDBC_URL));
+    ref.add(new StringRefAddr("username", USERNAME));
+    ref.add(new StringRefAddr("password", PASSWORD));
+
+    DataSource dataSource = DataSource.class.cast(factory.getObjectInstance(ref, null, null, null));
+    Objects.requireNonNull(dataSource, "returned datasource from JDNI Factory");
+    try(Connection conn = dataSource.getConnection()) {
+      checkConnection("fresh connection from JNDI Factory", conn);
+    }
+  }
+
+  private static final HikariDataSource generateHikariCPDataSource() {
     HikariDataSource hikari = new HikariDataSource();
     hikari.setJdbcUrl(JDBC_URL);
     hikari.setUsername(USERNAME);
     hikari.setPassword(PASSWORD);
+    return hikari;
+  }
+
+  private static void checkReturnedAndCheckedOutHikariCPConnectionHasDefaultSchema() throws Exception {
+    HikariDataSource hikari = generateHikariCPDataSource();
     try(Connection conn = hikari.getConnection()) {
+      checkConnection("initially acquired Hikari connection", conn);
+    }
+    try(Connection conn = hikari.getConnection()) {
+      checkConnection("reacquired Hikari connection", conn);
+    }
+  }
+
+  private static void checkFreshHikariCPConnectionHasDefaultSchema() throws Exception {
+    try(Connection conn = generateHikariCPDataSource().getConnection()) {
       checkConnection("fresh Hikari connection", conn);
     }
   }
@@ -57,6 +90,7 @@ public class Main {
         }
       }
     }
+    System.out.println("Successfully checked " + connectionName);
   }
 
 }

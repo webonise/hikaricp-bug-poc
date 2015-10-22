@@ -14,6 +14,7 @@ repositories {
 dependencies {
   compile 'com.zaxxer:HikariCP:2.4.1'
   runtime 'mysql:mysql-connector-java:[5.1.37,5.2)'
+  runtime 'org.slf4j:slf4j-simple:[1.7.12,1.8)'
 }
 
 idea.project.ipr {
