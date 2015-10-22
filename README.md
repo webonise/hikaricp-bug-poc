@@ -22,4 +22,4 @@ Run
 
 `./gradlew run`
 
-If it passes successfully, you're good to go.
+If it passes successfully, the bug isn't with Hikari. If you see a stack trace, you _may_ have just found a bug.  (Or you borked your configuration.)
