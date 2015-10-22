@@ -31,17 +31,30 @@ public class Main {
   }
 
   private static void checkHikariCPJNDIFactoryHasDefaultSchema() throws Exception {
-    HikariJNDIFactory factory = new HikariJNDIFactory();
+    DataSource dataSource = fetchDataSourceFromHikariCPJNDIFactory(generateHikariCPJNDIFactory());
+    try(Connection conn = dataSource.getConnection()) {
+      checkConnection("fresh connection from JNDI Factory", conn);
+    }
+    for(int i = 0; i < 10; i++) {
+      try (Connection conn = dataSource.getConnection()) {
+        checkConnection("reacquired connection #" + (i+1) + " from JNDI Factory", conn);
+      }
+    }
+  }
+
+  private static final DataSource fetchDataSourceFromHikariCPJNDIFactory(HikariJNDIFactory factory) throws Exception {
     Reference ref = new Reference("javax.sql.DataSource");
     ref.add(new StringRefAddr("jdbcUrl", JDBC_URL));
     ref.add(new StringRefAddr("username", USERNAME));
     ref.add(new StringRefAddr("password", PASSWORD));
-
     DataSource dataSource = DataSource.class.cast(factory.getObjectInstance(ref, null, null, null));
     Objects.requireNonNull(dataSource, "returned datasource from JDNI Factory");
-    try(Connection conn = dataSource.getConnection()) {
-      checkConnection("fresh connection from JNDI Factory", conn);
-    }
+    return dataSource;
+  }
+
+  private static final HikariJNDIFactory generateHikariCPJNDIFactory() {
+    HikariJNDIFactory factory = new HikariJNDIFactory();
+    return factory;
   }
 
   private static final HikariDataSource generateHikariCPDataSource() {
@@ -57,8 +70,10 @@ public class Main {
     try(Connection conn = hikari.getConnection()) {
       checkConnection("initially acquired Hikari connection", conn);
     }
-    try(Connection conn = hikari.getConnection()) {
-      checkConnection("reacquired Hikari connection", conn);
+    for(int i = 0; i < 10; i++) {
+      try (Connection conn = hikari.getConnection()) {
+        checkConnection("reacquired Hikari connection #" + (i+1), conn);
+      }
     }
   }
 
@@ -91,6 +106,7 @@ public class Main {
       }
     }
     System.out.println("Successfully checked " + connectionName);
+    System.out.flush();
   }
 
 }
