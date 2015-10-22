@@ -3,7 +3,8 @@ package poc;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariJNDIFactory;
 
-import javax.naming.*;
+import javax.naming.Reference;
+import javax.naming.StringRefAddr;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -105,7 +106,7 @@ public class Main {
         }
       }
     }
-    System.out.println("Successfully checked " + connectionName);
+    System.out.println("Successfully checked " + connectionName + " => " + conn);
     System.out.flush();
   }
 
